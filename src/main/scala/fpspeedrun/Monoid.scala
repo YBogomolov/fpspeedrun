@@ -10,7 +10,7 @@ trait Monoid[A] extends Semigroup[A] with Default[A] {
   override def default: A = empty
 }
 
-object Monoid extends StdMonoidInstances[Monoid] {
+object Monoid extends StdMonoidInstances[Monoid]{
   implicit def optionMonoid[T: Semigroup]: Monoid[Option[T]] =
     new Monoid[Option[T]] {
       override def empty: Option[T] = None
@@ -18,14 +18,17 @@ object Monoid extends StdMonoidInstances[Monoid] {
         for (x <- xo; y <- yo) yield x |+| y
     }
 
-  //TODO find the real type. Hint: look below
-  type FreeMonoid[A] = Nothing
+  type FreeMonoid[A] = List[A]
 
   implicit val freeMonoid: FreeConstruct[Monoid, FreeMonoid] =
     new FreeConstruct[Monoid, FreeMonoid] {
-      override def embed[T](x: T): FreeMonoid[T] = ???
-      override def instance[T]: Monoid[FreeMonoid[T]] = ???
-      override def mapInterpret[A, B](fa: FreeMonoid[A])(f: A => B)(implicit instance: Monoid[B]): B = ???
+      override def embed[T](x: T): FreeMonoid[T] = List(x)
+      override def instance[T]: Monoid[FreeMonoid[T]] = new Monoid[FreeMonoid[T]] {
+        override def empty: FreeMonoid[T] = List.empty
+        override def combine(x: FreeMonoid[T], y: FreeMonoid[T]): FreeMonoid[T] = x ::: y
+      }
+      override def mapInterpret[A, B](fa: FreeMonoid[A])(f: A => B)(implicit instance: Monoid[B]): B =
+        fa.map(f).foldLeft(instance.empty)(instance.combine)
     }
 }
 
